@@ -16,7 +16,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 logging.basicConfig(level=logging.INFO)
 
 # Load the YOLO model - use an absolute path or environment variable if needed
-MODEL_PATH = os.getenv("MODEL_PATH", "../best.pt")
+MODEL_PATH = os.getenv("MODEL_PATH", "../best.pt")  # Ensure the path is correct for deployment
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"Model file not found at {MODEL_PATH}. Ensure the path is correct.")
 
@@ -49,28 +49,35 @@ def resize_image(filepath, target_size=(224, 224)):
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    # Check if an image file is included in the request
     if 'image' not in request.files:
         return jsonify({'error': 'No image file provided'}), 400
 
     file = request.files['image']
+    
+    # Validate file format
     if not (file and allowed_file(file.filename)):
         return jsonify({'error': 'Invalid file format. Allowed formats: png, jpg, jpeg'}), 400
 
     filename = secure_filename(file.filename)
     filepath = os.path.join(UPLOADS_DIR, filename)
+
     try:
+        # Save the uploaded file to the server
         file.save(filepath)
         logging.info(f"Image saved at: {filepath}")
 
+        # Open and log the image properties
         with Image.open(filepath) as img:
             logging.info(f"Original image size: {img.size}")
 
+        # Resize the image
         resize_image(filepath)
 
         # Run inference using the YOLO model
         results = model.predict(source=filepath, show=False)
 
-        # Cleanup temporary file
+        # Cleanup the temporary file after prediction
         os.remove(filepath)
 
         # Extract and format results
@@ -83,6 +90,7 @@ def predict():
             return jsonify({'error': 'Unable to process the image'}), 500
 
     except Exception as e:
+        # Log the error and cleanup
         logging.error(f"Error during prediction: {e}")
         if os.path.exists(filepath):
             os.remove(filepath)
@@ -90,5 +98,6 @@ def predict():
 
 # Main entry point for Render deployment
 if __name__ == '__main__':
+    # Ensure the app uses the correct port on the cloud platform
     port = int(os.getenv("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
