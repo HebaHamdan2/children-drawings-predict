@@ -1,4 +1,5 @@
 import os
+import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from ultralytics import YOLO
@@ -15,11 +16,29 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Set up logging for debugging
 logging.basicConfig(level=logging.INFO)
 
-# Load the YOLO model - use an absolute path or environment variable if needed
-MODEL_PATH = os.getenv("MODEL_PATH", "../best.pt")  # Ensure the path is correct for deployment
-if not os.path.exists(MODEL_PATH):
-    logging.warning(f"Model file not found at {MODEL_PATH}. Ensure the path is correct.")
+# GitHub release URL for the model file
+RELEASE_URL = "https://github.com/yourusername/yourrepo/releases/download/v1.0.0/best.pt"  # Replace with your actual URL
+MODEL_PATH = "best.pt"
 
+# Function to download the model file from GitHub release URL
+def download_model():
+    if not os.path.exists(MODEL_PATH):
+        logging.info(f"Downloading model from {RELEASE_URL}")
+        try:
+            response = requests.get(RELEASE_URL)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            with open(MODEL_PATH, 'wb') as f:
+                f.write(response.content)
+            logging.info(f"Model downloaded successfully and saved to {MODEL_PATH}")
+        except Exception as e:
+            logging.error(f"Error downloading the model: {e}")
+            raise RuntimeError(f"Error downloading the model: {e}")
+
+# Download the model if it doesn't exist
+if not os.path.exists(MODEL_PATH):
+    download_model()
+
+# Load the YOLO model
 try:
     model = YOLO(MODEL_PATH)
     logging.info("YOLO model loaded successfully.")
