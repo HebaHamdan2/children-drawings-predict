@@ -17,7 +17,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 logging.basicConfig(level=logging.INFO)
 
 # GitHub release URL for the model file
-RELEASE_URL = "https://github.com/yourusername/yourrepo/releases/download/v1.0.0/best.pt"  # Replace with your actual URL
+RELEASE_URL = "https://github.com/HebaHamdan2/children-drawings-predict/releases/download/v1.0.0/best.pt"  
 MODEL_PATH = "best.pt"
 
 # Function to download the model file from GitHub release URL
